@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anime Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    .container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+    }
+    
+    .player-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      position: relative;
+    }
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    .controls {
+      background: #222;
+      padding: 15px;
+      color: #fff;
+      border-top: 1px solid #333;
+    }
+    
+    .control-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    select, button {
+      padding: 8px 12px;
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    select:hover, button:hover {
+      background: #444;
+    }
+    
+    .info {
+      color: #999;
+      font-size: 12px;
+    }
+    
+    .error {
+      color: #ff6b6b;
+      padding: 15px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      margin: 10px;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 300px;
+      color: #fff;
+      font-size: 16px;
+    }
+    
+    .spinner {
+      border: 4px solid #333;
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="player-wrapper">
+      <div id="player-content">
+        <div class="loading">
+          <div class="spinner"></div>
+          Loading stream...
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="server-select">Server:</label>
+        <select id="server-select">
+          <option value="hd-1">HD 1</option>
+          <option value="hd-2" selected>HD 2</option>
+          <option value="hd-3">HD 3</option>
+          <option value="hd-4">HD 4</option>
+          <option value="hd-5">HD 5</option>
+          <option value="standard">Standard</option>
+        </select>
+        
+        <button id="load-btn">Load Stream</button>
+        
+        <span class="info" id="status">Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const serverSelect = document.getElementById('server-select');
+    const loadBtn = document.getElementById('load-btn');
+    const playerContent = document.getElementById('player-content');
+    const status = document.getElementById('status');
+    
+    // Extract episode ID from URL
+    function getEpisodeId() {
+      const pathArray = window.location.pathname.split('/');
+      return pathArray[pathArray.length - 1];
+    }
+    
+    async function loadStream() {
+      const episodeId = getEpisodeId();
+      const server = serverSelect.value;
+      
+      status.textContent = 'Loading...';
+      playerContent.innerHTML = '<div class="loading"><div class="spinner"></div>Loading stream...</div>';
+      
+      try {
+        const response = await fetch(`/api/stream?id=${encodeURIComponent(episodeId)}&server=${encodeURIComponent(server)}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.data) {
+          throw new Error('Invalid response from server');
+        }
+        
+        // Check for subtitle sources
+        let streamUrl = null;
+        let subtitles = [];
+        
+        if (data.data.sources && Array.isArray(data.data.sources)) {
+          // Find the best quality source
+          const source = data.data.sources.find(s => s.quality === '720p') || 
+                        data.data.sources.find(s => s.quality === '480p') ||
+                        data.data.sources[0];
+          
+          if (source) {
+            streamUrl = source.url;
+          }
+          
+          // Collect subtitles
+          if (data.data.subtitles && Array.isArray(data.data.subtitles)) {
+            subtitles = data.data.subtitles;
+          }
+        } else if (data.data.link) {
+          // Fallback to direct link
+          streamUrl = data.data.link;
+        }
+        
+        if (!streamUrl) {
+          throw new Error('No stream URL found in response');
+        }
+        
+        // Create video player
+        let html = `<video controls autoplay style="width: 100%; height: 100%; object-fit: contain;">`;
+        html += `<source src="/proxy?url=${encodeURIComponent(streamUrl)}" type="application/x-mpegURL">`;
+        
+        // Add subtitles if available
+        if (subtitles.length > 0) {
+          subtitles.forEach(sub => {
+            html += `<track kind="subtitles" src="/proxy?url=${encodeURIComponent(sub.url)}" srclang="${sub.lang || 'en'}" label="${sub.lang || 'English'}">`;
+          });
+        }
+        
+        html += '</video>';
+        playerContent.innerHTML = html;
+        status.textContent = `Playing on ${server}`;
+        
+      } catch (error) {
+        console.error('Error:', error);
+        playerContent.innerHTML = `<div class="error">Error loading stream: ${error.message}</div>`;
+        status.textContent = 'Error loading stream';
+      }
+    }
+    
+    loadBtn.addEventListener('click', loadStream);
+    serverSelect.addEventListener('change', loadStream);
+    
+    // Load stream on page load
+    window.addEventListener('load', loadStream);
+  </script>
+</body>
+</html>
