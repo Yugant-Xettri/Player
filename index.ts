@@ -119,18 +119,23 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         1000
       );
       
-      // Transform aniwatch source format to match player expectations
-      const sourceData = streamData.sources?.[0];
+      if (!streamData || !streamData.sources || streamData.sources.length === 0) {
+        return res.status(503).json({ error: 'No sources available' });
+      }
+
+      // Transform tracks
       const transformedTracks = (streamData.tracks || []).map((t: any) => ({
         file: t.url,
         label: t.lang,
         kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
         default: t.lang === 'English'
       }));
-      const transformedData = {
+
+      // Build response - use first source as SUB, second as DUB (if available)
+      const transformedData: any = {
         sub: {
           type: 'sub',
-          link: sourceData ? { file: sourceData.url } : null,
+          link: { file: streamData.sources[0].url },
           tracks: transformedTracks,
           intro: streamData.intro || { start: 0, end: 0 },
           outro: streamData.outro || { start: 0, end: 0 },
@@ -138,6 +143,18 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         },
         dub: {}
       };
+
+      // If there's a second source, use it as DUB
+      if (streamData.sources.length > 1) {
+        transformedData.dub = {
+          type: 'dub',
+          link: { file: streamData.sources[1].url },
+          tracks: transformedTracks,
+          intro: streamData.intro || { start: 0, end: 0 },
+          outro: streamData.outro || { start: 0, end: 0 },
+          server: server
+        };
+      }
       
       res.json({
         success: true,
