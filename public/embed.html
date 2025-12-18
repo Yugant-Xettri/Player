@@ -12,8 +12,8 @@
     }
     
     body {
-      background: #1a1a1a;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -44,13 +44,10 @@
     }
     
     .controls {
-      background: #222;
-      padding: 15px;
+      background: #1a1a1a;
+      padding: 12px 15px;
       color: #fff;
       border-top: 1px solid #333;
-    }
-    
-    .control-group {
       display: flex;
       gap: 10px;
       align-items: center;
@@ -58,39 +55,37 @@
     }
     
     select, button {
-      padding: 8px 12px;
+      padding: 6px 12px;
       background: #333;
       color: #fff;
       border: 1px solid #555;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
     }
     
     select:hover, button:hover {
       background: #444;
     }
     
-    .info {
+    .status {
       color: #999;
       font-size: 12px;
+      margin-left: auto;
     }
     
-    .error {
-      color: #ff6b6b;
-      padding: 15px;
-      background: #1a1a1a;
-      border-radius: 4px;
-      margin: 10px;
-    }
-    
-    .loading {
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      min-height: 300px;
-      color: #fff;
-      font-size: 16px;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 100;
     }
     
     .spinner {
@@ -100,52 +95,59 @@
       width: 40px;
       height: 40px;
       animation: spin 1s linear infinite;
-      margin-right: 10px;
     }
     
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
+    .loading-text {
+      color: #fff;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    
+    .error {
+      color: #ff6b6b;
+      padding: 20px;
+      background: rgba(255, 0, 0, 0.1);
+      border-radius: 4px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="player-wrapper">
-      <div id="player-content">
-        <div class="loading">
-          <div class="spinner"></div>
-          Loading stream...
-        </div>
+    <div class="player-wrapper" id="player-wrapper">
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading stream...</div>
       </div>
     </div>
     
     <div class="controls">
-      <div class="control-group">
-        <label for="server-select">Server:</label>
-        <select id="server-select">
-          <option value="hd-1">HD 1</option>
-          <option value="hd-2" selected>HD 2</option>
-          <option value="hd-3">HD 3</option>
-          <option value="hd-4">HD 4</option>
-          <option value="hd-5">HD 5</option>
-          <option value="standard">Standard</option>
-        </select>
-        
-        <button id="load-btn">Load Stream</button>
-        
-        <span class="info" id="status">Ready</span>
-      </div>
+      <label for="server-select">Server:</label>
+      <select id="server-select">
+        <option value="hd-1">HD 1</option>
+        <option value="hd-2" selected>HD 2</option>
+        <option value="hd-3">HD 3</option>
+        <option value="hd-4">HD 4</option>
+        <option value="hd-5">HD 5</option>
+      </select>
+      
+      <button id="load-btn">Reload</button>
+      
+      <span class="status" id="status">Initializing...</span>
     </div>
   </div>
 
   <script>
+    const playerWrapper = document.getElementById('player-wrapper');
     const serverSelect = document.getElementById('server-select');
     const loadBtn = document.getElementById('load-btn');
-    const playerContent = document.getElementById('player-content');
     const status = document.getElementById('status');
     
-    // Extract episode ID from URL
     function getEpisodeId() {
       const pathArray = window.location.pathname.split('/');
       return pathArray[pathArray.length - 1];
@@ -156,13 +158,13 @@
       const server = serverSelect.value;
       
       status.textContent = 'Loading...';
-      playerContent.innerHTML = '<div class="loading"><div class="spinner"></div>Loading stream...</div>';
+      playerWrapper.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Loading stream...</div></div>';
       
       try {
         const response = await fetch(`/api/stream?id=${encodeURIComponent(episodeId)}&server=${encodeURIComponent(server)}`);
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`Server error: ${response.status}`);
         }
         
         const data = await response.json();
@@ -171,59 +173,56 @@
           throw new Error('Invalid response from server');
         }
         
-        // Check for subtitle sources
         let streamUrl = null;
         let subtitles = [];
+        let trackVersion = 'sub';
         
-        if (data.data.sources && Array.isArray(data.data.sources)) {
-          // Find the best quality source
-          const source = data.data.sources.find(s => s.quality === '720p') || 
-                        data.data.sources.find(s => s.quality === '480p') ||
-                        data.data.sources[0];
-          
-          if (source) {
-            streamUrl = source.url;
-          }
-          
-          // Collect subtitles
-          if (data.data.subtitles && Array.isArray(data.data.subtitles)) {
-            subtitles = data.data.subtitles;
-          }
-        } else if (data.data.link) {
-          // Fallback to direct link
-          streamUrl = data.data.link;
+        // Try subtitle version first
+        if (data.data.sub && data.data.sub.link && data.data.sub.link.file) {
+          streamUrl = data.data.sub.link.file;
+          subtitles = data.data.sub.tracks || [];
+          trackVersion = 'sub';
+        } 
+        // Fallback to dubbed version
+        else if (data.data.dub && data.data.dub.link && data.data.dub.link.file) {
+          streamUrl = data.data.dub.link.file;
+          subtitles = data.data.dub.tracks || [];
+          trackVersion = 'dub';
         }
         
         if (!streamUrl) {
-          throw new Error('No stream URL found in response');
+          throw new Error('No stream URL found');
         }
         
-        // Create video player
-        let html = `<video controls autoplay style="width: 100%; height: 100%; object-fit: contain;">`;
-        html += `<source src="/proxy?url=${encodeURIComponent(streamUrl)}" type="application/x-mpegURL">`;
+        // Build video element with subtitles
+        let videoHtml = `<video controls autoplay style="width: 100%; height: 100%; object-fit: contain;">`;
+        videoHtml += `<source src="/proxy?url=${encodeURIComponent(streamUrl)}" type="application/x-mpegURL">`;
         
-        // Add subtitles if available
-        if (subtitles.length > 0) {
-          subtitles.forEach(sub => {
-            html += `<track kind="subtitles" src="/proxy?url=${encodeURIComponent(sub.url)}" srclang="${sub.lang || 'en'}" label="${sub.lang || 'English'}">`;
+        // Add subtitle tracks
+        if (subtitles && Array.isArray(subtitles)) {
+          subtitles.forEach((track, idx) => {
+            if (track.kind === 'captions' && track.file) {
+              const isDefault = track.default || track.label === 'English' ? ' default' : '';
+              videoHtml += `<track kind="captions" src="/proxy?url=${encodeURIComponent(track.file)}" srclang="${track.label?.split('-')[0] || 'en'}" label="${track.label || 'Subtitle'}'${isDefault}>`;
+            }
           });
         }
         
-        html += '</video>';
-        playerContent.innerHTML = html;
-        status.textContent = `Playing on ${server}`;
+        videoHtml += '</video>';
+        playerWrapper.innerHTML = videoHtml;
+        status.textContent = `Playing ${trackVersion} on ${server}`;
         
       } catch (error) {
         console.error('Error:', error);
-        playerContent.innerHTML = `<div class="error">Error loading stream: ${error.message}</div>`;
-        status.textContent = 'Error loading stream';
+        playerWrapper.innerHTML = `<div class="error"><strong>Error Loading Stream</strong><br>${error.message}</div>`;
+        status.textContent = 'Error';
       }
     }
     
     loadBtn.addEventListener('click', loadStream);
     serverSelect.addEventListener('change', loadStream);
     
-    // Load stream on page load
+    // Load on page load
     window.addEventListener('load', loadStream);
   </script>
 </body>
