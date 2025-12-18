@@ -131,7 +131,7 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         default: t.lang === 'English'
       }));
 
-      // Build response - use first source as SUB, second as DUB (if available)
+      // Build response with SUB data
       const transformedData: any = {
         sub: {
           type: 'sub',
@@ -144,11 +144,46 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         dub: {}
       };
 
-      // If there's a second source, use it as DUB
-      if (streamData.sources.length > 1) {
+      // Try to fetch DUB from different servers
+      const dubServers = ['sub-sub', 'dub', 'dub-sub', 'raw'];
+      let foundDub = false;
+      
+      for (const dubServer of dubServers) {
+        try {
+          const dubData = await retryWithBackoff(() => 
+            scraper.getEpisodeSources(id, dubServer), 
+            2, 
+            500
+          ).catch(() => null);
+          
+          if (dubData && dubData.sources && dubData.sources.length > 0) {
+            const dubTracks = (dubData.tracks || []).map((t: any) => ({
+              file: t.url,
+              label: t.lang,
+              kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
+              default: t.lang === 'English'
+            }));
+            transformedData.dub = {
+              type: 'dub',
+              link: { file: dubData.sources[0].url },
+              tracks: dubTracks,
+              intro: dubData.intro || { start: 0, end: 0 },
+              outro: dubData.outro || { start: 0, end: 0 },
+              server: dubServer
+            };
+            foundDub = true;
+            break;
+          }
+        } catch (e) {
+          // Continue to next server
+        }
+      }
+      
+      // If no DUB found, use SUB as fallback for DUB
+      if (!foundDub && streamData.sources.length > 0) {
         transformedData.dub = {
           type: 'dub',
-          link: { file: streamData.sources[1].url },
+          link: { file: streamData.sources[0].url },
           tracks: transformedTracks,
           intro: streamData.intro || { start: 0, end: 0 },
           outro: streamData.outro || { start: 0, end: 0 },
