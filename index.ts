@@ -131,7 +131,7 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         default: t.lang === 'English'
       }));
 
-      // Build response - use same source for both SUB and DUB
+      // Build response with SUB
       const transformedData: any = {
         sub: {
           type: 'sub',
@@ -141,15 +141,37 @@ app.get('/api/stream', async (req: Request, res: Response) => {
           outro: streamData.outro || { start: 0, end: 0 },
           server: server
         },
-        dub: {
-          type: 'dub',
-          link: { file: streamData.sources[0].url },
-          tracks: transformedTracks,
-          intro: streamData.intro || { start: 0, end: 0 },
-          outro: streamData.outro || { start: 0, end: 0 },
-          server: server
-        }
+        dub: {}
       };
+
+      // Try to fetch DUB from different server - leave empty if not found
+      try {
+        const dubData = await retryWithBackoff(() => 
+          scraper.getEpisodeSources(id, 'dub'), 
+          2, 
+          500
+        ).catch(() => null);
+        
+        if (dubData && dubData.sources && dubData.sources.length > 0) {
+          const dubTracks = (dubData.tracks || []).map((t: any) => ({
+            file: t.url,
+            label: t.lang,
+            kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
+            default: t.lang === 'English'
+          }));
+          transformedData.dub = {
+            type: 'dub',
+            link: { file: dubData.sources[0].url },
+            tracks: dubTracks,
+            intro: dubData.intro || { start: 0, end: 0 },
+            outro: dubData.outro || { start: 0, end: 0 },
+            server: 'dub'
+          };
+        }
+        // If no DUB found, dub stays empty {}
+      } catch (e) {
+        // DUB not available - stays empty
+      }
       
       res.json({
         success: true,
