@@ -89,9 +89,30 @@ app.get('/api/stream', async (req: Request, res: Response) => {
 
     try {
       const streamData = await scraper.getEpisodeSources(id, server);
+      
+      // Transform aniwatch response to match player expectations
+      // The player expects: { sub: {link, tracks, intro, outro}, dub: {link, tracks, intro, outro} }
+      // But aniwatch returns: { headers, sources, tracks, intro, outro }
+      
+      // Transform aniwatch source format to match player expectations
+      // Player expects: link.file (string URL)
+      // Aniwatch provides: sources[0].url (string URL)
+      const sourceData = streamData.sources?.[0];
+      const transformedData = {
+        sub: {
+          type: 'sub',
+          link: sourceData ? { file: sourceData.url } : null,
+          tracks: streamData.tracks || [],
+          intro: streamData.intro || { start: 0, end: 0 },
+          outro: streamData.outro || { start: 0, end: 0 },
+          server: server
+        },
+        dub: {}  // Aniwatch doesn't separate dub from sub, so dub is empty
+      };
+      
       res.json({
         success: true,
-        data: streamData
+        data: transformedData
       });
     } catch (error: any) {
       console.error('Aniwatch API error:', error.message);
