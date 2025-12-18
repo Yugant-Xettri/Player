@@ -1,16 +1,47 @@
 entrypoint = "index.ts"
 
-hidden = [".config", "bun.lockb"]
-modules = ["bun-1.1"]
+hidden = [".config", "bun.lock"]
+modules = ["bun-1.2", "nodejs-20"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-24_11"
 
 [deployment]
-build = ["sh", "-c", "mkdir .build && bun build index.ts > .build/index.js"]
-run = ["bun", ".build/index.js"]
+build = ["sh", "-c", "bun build --target=bun --outdir=dist index.ts"]
+run = ["bun", "dist/index.js"]
 deploymentTarget = "cloudrun"
 
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[agent]
+expertMode = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "anime-server"
+
+[[workflows.workflow]]
+name = "anime-server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bun index.ts"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
