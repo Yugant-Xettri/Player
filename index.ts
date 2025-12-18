@@ -75,6 +75,30 @@ app.get('/proxy', async (req: Request, res: Response) => {
   }
 });
 
+// Helper function to retry with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 500
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < maxRetries - 1) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`Retry attempt ${attempt + 1}/${maxRetries - 1} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
 app.get('/api/stream', async (req: Request, res: Response) => {
   try {
     let id = req.query.id as string;
@@ -88,26 +112,31 @@ app.get('/api/stream', async (req: Request, res: Response) => {
     id = id.replace('::', '?');
 
     try {
-      const streamData = await scraper.getEpisodeSources(id, server);
-      
-      // Transform aniwatch response to match player expectations
-      // The player expects: { sub: {link, tracks, intro, outro}, dub: {link, tracks, intro, outro} }
-      // But aniwatch returns: { headers, sources, tracks, intro, outro }
+      // Retry with exponential backoff for provider rate limiting
+      const streamData = await retryWithBackoff(() => 
+        scraper.getEpisodeSources(id, server), 
+        3, 
+        1000
+      );
       
       // Transform aniwatch source format to match player expectations
-      // Player expects: link.file (string URL)
-      // Aniwatch provides: sources[0].url (string URL)
       const sourceData = streamData.sources?.[0];
+      const transformedTracks = (streamData.tracks || []).map((t: any) => ({
+        file: t.url,
+        label: t.lang,
+        kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
+        default: t.lang === 'English'
+      }));
       const transformedData = {
         sub: {
           type: 'sub',
           link: sourceData ? { file: sourceData.url } : null,
-          tracks: streamData.tracks || [],
+          tracks: transformedTracks,
           intro: streamData.intro || { start: 0, end: 0 },
           outro: streamData.outro || { start: 0, end: 0 },
           server: server
         },
-        dub: {}  // Aniwatch doesn't separate dub from sub, so dub is empty
+        dub: {}
       };
       
       res.json({
@@ -116,9 +145,8 @@ app.get('/api/stream', async (req: Request, res: Response) => {
       });
     } catch (error: any) {
       console.error('Aniwatch API error:', error.message);
-      // Return 503 for provider errors so client knows to retry
       const status = error.status === 500 || error.message.includes('client key') ? 503 : 400;
-      res.status(status).json({ error: 'Provider temporarily unavailable. Please try again.' });
+      res.status(status).json({ error: 'Provider temporarily unavailable. Trying different server...' });
     }
   } catch (error) {
     console.error('API error:', error);
