@@ -175,19 +175,15 @@
         
         let streamUrl = null;
         let subtitles = [];
-        let trackVersion = 'sub';
         
-        // Try subtitle version first
-        if (data.data.sub && data.data.sub.link && data.data.sub.link.file) {
-          streamUrl = data.data.sub.link.file;
-          subtitles = data.data.sub.tracks || [];
-          trackVersion = 'sub';
-        } 
-        // Fallback to dubbed version
-        else if (data.data.dub && data.data.dub.link && data.data.dub.link.file) {
-          streamUrl = data.data.dub.link.file;
-          subtitles = data.data.dub.tracks || [];
-          trackVersion = 'dub';
+        // Get stream URL from sources array
+        if (data.data.sources && Array.isArray(data.data.sources) && data.data.sources.length > 0) {
+          streamUrl = data.data.sources[0].url;
+        }
+        
+        // Get subtitles from tracks array
+        if (data.data.tracks && Array.isArray(data.data.tracks)) {
+          subtitles = data.data.tracks;
         }
         
         if (!streamUrl) {
@@ -201,16 +197,16 @@
         // Add subtitle tracks
         if (subtitles && Array.isArray(subtitles)) {
           subtitles.forEach((track, idx) => {
-            if (track.kind === 'captions' && track.file) {
-              const isDefault = track.default || track.label === 'English' ? ' default' : '';
-              videoHtml += `<track kind="captions" src="/proxy?url=${encodeURIComponent(track.file)}" srclang="${track.label?.split('-')[0] || 'en'}" label="${track.label || 'Subtitle'}'${isDefault}>`;
+            if (track.lang && track.lang !== 'thumbnails' && track.url) {
+              const isDefault = track.lang === 'English' ? ' default' : '';
+              videoHtml += `<track kind="captions" src="/proxy?url=${encodeURIComponent(track.url)}" srclang="${track.lang.split('-')[0] || 'en'}" label="${track.lang}"${isDefault}>`;
             }
           });
         }
         
         videoHtml += '</video>';
         playerWrapper.innerHTML = videoHtml;
-        status.textContent = `Playing ${trackVersion} on ${server}`;
+        status.textContent = `Playing on ${server}`;
         
       } catch (error) {
         console.error('Error:', error);

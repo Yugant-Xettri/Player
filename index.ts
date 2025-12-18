@@ -77,12 +77,15 @@ app.get('/proxy', async (req: Request, res: Response) => {
 
 app.get('/api/stream', async (req: Request, res: Response) => {
   try {
-    const id = req.query.id as string;
+    let id = req.query.id as string;
     const server = (req.query.server as string || 'hd-2').toLowerCase();
 
     if (!id) {
       return res.status(400).json({ error: 'Episode ID is required' });
     }
+
+    // Convert format from "anime-id::ep=number" to "anime-id?ep=number"
+    id = id.replace('::', '?');
 
     try {
       const streamData = await scraper.getEpisodeSources(id, server);
@@ -91,8 +94,10 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         data: streamData
       });
     } catch (error: any) {
-      console.error('Aniwatch API error:', error);
-      res.status(400).json({ error: error.message || 'Failed to fetch stream data' });
+      console.error('Aniwatch API error:', error.message);
+      // Return 503 for provider errors so client knows to retry
+      const status = error.status === 500 || error.message.includes('client key') ? 503 : 400;
+      res.status(status).json({ error: 'Provider temporarily unavailable. Please try again.' });
     }
   } catch (error) {
     console.error('API error:', error);
