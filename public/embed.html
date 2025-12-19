@@ -155,6 +155,19 @@
       text-align: center;
       max-width: 80%;
     }
+    
+    .countdown-timer {
+      font-size: 72px;
+      font-weight: bold;
+      color: #e50914;
+      animation: pulse-count 1s ease-in-out;
+    }
+    
+    @keyframes pulse-count {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
 
     .controls-wrapper {
       position: absolute;
@@ -1377,8 +1390,13 @@
     </div>
 
     <div class="error-overlay" id="errorOverlay">
-      <div class="error-icon">⚠️</div>
-      <div class="error-text" id="errorText">Failed to load video</div>
+      <div id="countdownDisplay" style="display:none;">
+        <div class="countdown-timer" id="countdownNumber">3</div>
+      </div>
+      <div id="errorDisplay" style="display:none;">
+        <div class="error-icon">⚠️</div>
+        <div class="error-text" id="errorText">Failed to load video</div>
+      </div>
     </div>
 
     <div class="double-tap-overlay left" id="doubleTapLeft"></div>
@@ -1756,9 +1774,34 @@
     function showError(message) {
       errorText.textContent = message;
       errorOverlay.style.display = 'flex';
-      setTimeout(() => {
-        errorOverlay.style.display = 'none';
-      }, 4000);
+      
+      const countdownDisplay = document.getElementById('countdownDisplay');
+      const errorDisplay = document.getElementById('errorDisplay');
+      const countdownNumber = document.getElementById('countdownNumber');
+      
+      countdownDisplay.style.display = 'flex';
+      countdownDisplay.style.flexDirection = 'column';
+      countdownDisplay.style.alignItems = 'center';
+      countdownDisplay.style.justifyContent = 'center';
+      errorDisplay.style.display = 'none';
+      
+      let count = 3;
+      const countdownInterval = setInterval(() => {
+        countdownNumber.textContent = count;
+        count--;
+        if (count < 0) {
+          clearInterval(countdownInterval);
+          countdownDisplay.style.display = 'none';
+          errorDisplay.style.display = 'flex';
+          errorDisplay.style.flexDirection = 'column';
+          errorDisplay.style.alignItems = 'center';
+          errorDisplay.style.justifyContent = 'center';
+          
+          setTimeout(() => {
+            errorOverlay.style.display = 'none';
+          }, 3000);
+        }
+      }, 1000);
     }
 
     function updatePlayPauseIcons() {
