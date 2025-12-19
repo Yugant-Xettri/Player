@@ -89,7 +89,20 @@ app.get('/api/stream', async (req: Request, res: Response) => {
     }
 
     const result = await playerConnect.getEpisodeStreams(id, server);
-    res.json(result);
+    
+    // Add available servers to the response
+    const availableServers = [
+      { id: 'hd-1', name: 'Server 1' },
+      { id: 'hd-2', name: 'Server 2' },
+      { id: 'hd-3', name: 'Server 3' },
+      { id: 'hd-4', name: 'Server 4' },
+      { id: 'hd-5', name: 'Server 5' }
+    ];
+    
+    res.json({
+      ...result,
+      servers: availableServers
+    });
   } catch (error) {
     console.error('API error:', error);
     res.json({
@@ -98,6 +111,13 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         sub: { type: 'sub', link: { file: null }, tracks: [], intro: { start: 0, end: 0 }, outro: { start: 0, end: 0 }, server: 'hd-2' },
         dub: {}
       },
+      servers: [
+        { id: 'hd-1', name: 'Server 1' },
+        { id: 'hd-2', name: 'Server 2' },
+        { id: 'hd-3', name: 'Server 3' },
+        { id: 'hd-4', name: 'Server 4' },
+        { id: 'hd-5', name: 'Server 5' }
+      ],
       note: 'No stream available'
     });
   }

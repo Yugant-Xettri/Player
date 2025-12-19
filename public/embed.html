@@ -2057,12 +2057,25 @@
         return;
       }
 
+      // Show default servers immediately while API loads
+      allServersData = {
+        servers: [
+          { id: 'hd-1', name: 'Server 1' },
+          { id: 'hd-2', name: 'Server 2' },
+          { id: 'hd-3', name: 'Server 3' },
+          { id: 'hd-4', name: 'Server 4' },
+          { id: 'hd-5', name: 'Server 5' }
+        ]
+      };
+      populateServers();
+
       try {
         const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + currentServer);
         const result = await response.json();
 
         if (!result.success || !result.data) {
           showError('Failed to load stream data');
+          showLoading(false);
           return;
         }
 
@@ -2082,6 +2095,7 @@
       } catch (error) {
         console.error('Init error:', error);
         showError('Error: ' + error.message);
+        showLoading(false);
       }
     }
 
