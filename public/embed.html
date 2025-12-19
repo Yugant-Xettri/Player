@@ -1161,15 +1161,16 @@
       display: flex;
       align-items: center;
       gap: 40px;
-      opacity: 1;
+      opacity: 0;
       transition: opacity 0.3s;
       z-index: 40;
-      pointer-events: all;
+      pointer-events: none;
     }
 
     .player-wrapper:hover .center-controls,
     .player-wrapper.show-controls .center-controls {
       opacity: 1;
+      pointer-events: all;
     }
 
     .center-btn {
@@ -1796,7 +1797,7 @@
         if (!settingsMenuOpen && !ccModalOpen) {
           playerWrapper.classList.remove('show-controls');
         }
-      }, 5000);
+      }, 3000);
     }
 
     function checkSkipButtons() {
