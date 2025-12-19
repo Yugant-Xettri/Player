@@ -5,6 +5,7 @@ modules = ["bun-1.2", "nodejs-20"]
 
 [nix]
 channel = "stable-24_11"
+packages = ["jq"]
 
 [deployment]
 build = ["sh", "-c", "bun build --target=bun --outdir=dist index.ts"]

@@ -1736,7 +1736,9 @@
     function showError(message) {
       errorText.textContent = message;
       errorOverlay.style.display = 'flex';
-      showLoading(false);
+      setTimeout(() => {
+        errorOverlay.style.display = 'none';
+      }, 4000);
     }
 
     function updatePlayPauseIcons() {
@@ -1872,16 +1874,12 @@
           dubBtn.classList.add('active');
           subBtn.classList.remove('active');
         } else {
-          showError('Stream not available');
+          showError('Stream not available - try another server');
+          showLoading(false);
           return;
         }
       }
       
-      if (!source || !source.link) {
-        showError('Stream not available');
-        return;
-      }
-
       showLoading(true);
       clearSubtitles();
       const currentTime = video.currentTime;
@@ -1896,8 +1894,11 @@
       outroEnd = source.outro?.end || 0;
 
       const streamUrl = typeof source.link === 'string' ? source.link : source.link?.file;
+      
+      // If no stream URL available, show message but keep controls active
       if (!streamUrl) {
-        showError('Stream URL not available');
+        showLoading(false);
+        showError('Stream not available - try another server');
         return;
       }
       const hlsUrl = proxyUrl(streamUrl);
