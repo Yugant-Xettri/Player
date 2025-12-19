@@ -205,6 +205,181 @@ app.get('/api/stream', async (req: Request, res: Response) => {
   }
 });
 
+// New endpoint: Get streaming sources with multiple servers
+// Format: /api/stream/movie/tvId or /api/stream/tv/tvId/ep/1
+app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) => {
+  try {
+    const { type, tvId, epid } = req.params;
+    
+    console.log(`📺 Fetching ${type} ${tvId} - Episode ${epid}`);
+    
+    const servers = [
+      {
+        name: 'Server 1',
+        id: 'server-1',
+        sources: {
+          sub: {
+            type: 'sub',
+            link: `https://stream.example.com/${type}/${tvId}/ep${epid}/sub`,
+            captions: [
+              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/ep${epid}/sub.vtt` },
+              { lang: 'Spanish', url: `https://stream.example.com/${type}/${tvId}/ep${epid}/sub-es.vtt` }
+            ]
+          },
+          dub: {
+            type: 'dub',
+            link: `https://stream.example.com/${type}/${tvId}/ep${epid}/dub`,
+            captions: [
+              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/ep${epid}/dub.vtt` }
+            ]
+          }
+        }
+      },
+      {
+        name: 'Server 2',
+        id: 'server-2',
+        sources: {
+          sub: {
+            type: 'sub',
+            link: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/sub`,
+            captions: [
+              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/sub.vtt` },
+              { lang: 'German', url: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/sub-de.vtt` }
+            ]
+          },
+          dub: {
+            type: 'dub',
+            link: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/dub`,
+            captions: [
+              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/dub.vtt` }
+            ]
+          }
+        }
+      },
+      {
+        name: 'Server 3',
+        id: 'server-3',
+        sources: {
+          sub: {
+            type: 'sub',
+            link: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub`,
+            captions: [
+              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub.vtt` },
+              { lang: 'French', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub-fr.vtt` },
+              { lang: 'Italian', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub-it.vtt` }
+            ]
+          },
+          dub: {
+            type: 'dub',
+            link: `https://mirror.example.com/${type}/${tvId}/ep${epid}/dub`,
+            captions: [
+              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/dub.vtt` }
+            ]
+          }
+        }
+      }
+    ];
+    
+    res.json({
+      success: true,
+      contentType: type,
+      contentId: tvId,
+      episode: epid,
+      servers: servers
+    });
+  } catch (error) {
+    console.error('Stream error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stream' });
+  }
+});
+
+// Endpoint for movie/show without episode
+// Format: /api/stream/movie/tvId
+app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
+  try {
+    const { type, tvId } = req.params;
+    
+    console.log(`📺 Fetching ${type} ${tvId}`);
+    
+    const servers = [
+      {
+        name: 'Server 1',
+        id: 'server-1',
+        sources: {
+          sub: {
+            type: 'sub',
+            link: `https://stream.example.com/${type}/${tvId}/sub`,
+            captions: [
+              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/sub.vtt` },
+              { lang: 'Spanish', url: `https://stream.example.com/${type}/${tvId}/sub-es.vtt` }
+            ]
+          },
+          dub: {
+            type: 'dub',
+            link: `https://stream.example.com/${type}/${tvId}/dub`,
+            captions: [
+              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/dub.vtt` }
+            ]
+          }
+        }
+      },
+      {
+        name: 'Server 2',
+        id: 'server-2',
+        sources: {
+          sub: {
+            type: 'sub',
+            link: `https://cdn2.example.com/${type}/${tvId}/sub`,
+            captions: [
+              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/sub.vtt` },
+              { lang: 'German', url: `https://cdn2.example.com/${type}/${tvId}/sub-de.vtt` }
+            ]
+          },
+          dub: {
+            type: 'dub',
+            link: `https://cdn2.example.com/${type}/${tvId}/dub`,
+            captions: [
+              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/dub.vtt` }
+            ]
+          }
+        }
+      },
+      {
+        name: 'Server 3',
+        id: 'server-3',
+        sources: {
+          sub: {
+            type: 'sub',
+            link: `https://mirror.example.com/${type}/${tvId}/sub`,
+            captions: [
+              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/sub.vtt` },
+              { lang: 'French', url: `https://mirror.example.com/${type}/${tvId}/sub-fr.vtt` },
+              { lang: 'Italian', url: `https://mirror.example.com/${type}/${tvId}/sub-it.vtt` }
+            ]
+          },
+          dub: {
+            type: 'dub',
+            link: `https://mirror.example.com/${type}/${tvId}/dub`,
+            captions: [
+              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/dub.vtt` }
+            ]
+          }
+        }
+      }
+    ];
+    
+    res.json({
+      success: true,
+      contentType: type,
+      contentId: tvId,
+      servers: servers
+    });
+  } catch (error) {
+    console.error('Stream error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stream' });
+  }
+});
+
 app.get('/embed', (req: Request, res: Response) => {
   res.sendFile(path.join(process.cwd(), 'public', 'embed.html'));
 });
