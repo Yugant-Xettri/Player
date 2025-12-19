@@ -137,7 +137,17 @@ app.get('/api/stream', async (req: Request, res: Response) => {
       
       if (streamData && streamData.sources && streamData.sources.length > 0) {
         transformedData.sub.link.file = streamData.sources[0].url;
-        console.log(`✅ SUB stream found on ${serverParam}`);
+        
+        // Extract subtitle tracks from scraper response
+        if (streamData.subtitles && Array.isArray(streamData.subtitles)) {
+          transformedData.sub.tracks = streamData.subtitles.map((t: any) => ({
+            file: t.url,
+            label: t.lang || 'Unknown',
+            kind: 'captions',
+            default: t.default || false
+          }));
+        }
+        console.log(`✅ SUB stream found on ${serverParam} with ${transformedData.sub.tracks.length} subtitle tracks`);
       }
 
       // Try to fetch DUB stream with same server, category='dub'
@@ -150,15 +160,25 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         ).catch(() => null);
         
         if (dubData && dubData.sources && dubData.sources.length > 0) {
+          const dubTracks: any[] = [];
+          if (dubData.subtitles && Array.isArray(dubData.subtitles)) {
+            dubTracks.push(...dubData.subtitles.map((t: any) => ({
+              file: t.url,
+              label: t.lang || 'Unknown',
+              kind: 'captions',
+              default: t.default || false
+            })));
+          }
+          
           transformedData.dub = {
             type: 'dub',
             link: { file: dubData.sources[0].url },
-            tracks: [],
+            tracks: dubTracks,
             intro: { start: 0, end: 0 },
             outro: { start: 0, end: 0 },
             server: serverParam
           };
-          console.log(`✅ DUB stream found on ${serverParam}`);
+          console.log(`✅ DUB stream found on ${serverParam} with ${dubTracks.length} subtitle tracks`);
         }
       } catch (e) {
         console.log(`⚠️ DUB not available on ${serverParam}`);
