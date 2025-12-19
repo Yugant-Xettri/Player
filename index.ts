@@ -1,9 +1,9 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
-import { HiAnime } from 'aniwatch';
 
 const app = express();
-const scraper = new HiAnime.Scraper();
+const EXTERNAL_API = 'https://anime-api-rose-delta.vercel.app/api';
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -108,67 +108,70 @@ app.get('/api/stream', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Episode ID is required' });
     }
 
-    // Convert format from "anime-id::ep=number" to "anime-id?ep=number"
+    // Parse anime-id and episode number from format "anime-id?ep=number" or "anime-id::ep=number"
     id = id.replace('::', '?');
+    const parts = id.split('?ep=');
+    const animeId = parts[0];
+    const epNum = parts[1] || '1';
 
     try {
-      // Retry with exponential backoff for provider rate limiting
-      const streamData = await retryWithBackoff(() => 
-        scraper.getEpisodeSources(id, server), 
+      // Fetch from external anime API
+      const streamUrl = `${EXTERNAL_API}/anime/${animeId}/${epNum}/servers`;
+      console.log(`Fetching from: ${streamUrl}`);
+      
+      const response = await retryWithBackoff(() => 
+        fetch(streamUrl).then(r => r.json()), 
         3, 
         1000
       );
       
-      if (!streamData || !streamData.sources || streamData.sources.length === 0) {
+      if (!response || !response.results) {
         return res.status(503).json({ error: 'No sources available' });
       }
 
-      // Transform tracks
-      const transformedTracks = (streamData.tracks || []).map((t: any) => ({
-        file: t.url,
-        label: t.lang,
-        kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
-        default: t.lang === 'English'
-      }));
+      const sources = response.results || [];
+      
+      // Find source for requested server, default to first available
+      const selectedServer = sources.find((s: any) => 
+        s.serverName && s.serverName.toLowerCase().includes(server.split('-')[0])
+      ) || sources[0];
+
+      if (!selectedServer) {
+        return res.status(503).json({ error: 'No sources available for this server' });
+      }
 
       // Build response with SUB
       const transformedData: any = {
         sub: {
           type: 'sub',
-          link: { file: streamData.sources[0].url },
-          tracks: transformedTracks,
-          intro: streamData.intro || { start: 0, end: 0 },
-          outro: streamData.outro || { start: 0, end: 0 },
-          server: server
+          link: { file: selectedServer.link || selectedServer.url },
+          tracks: [],
+          intro: { start: 0, end: 0 },
+          outro: { start: 0, end: 0 },
+          server: selectedServer.serverName || server
         },
         dub: {}
       };
 
-      // Try to fetch DUB from different server - leave empty if not found
+      // Try to fetch DUB version if available
       try {
-        const dubData = await retryWithBackoff(() => 
-          scraper.getEpisodeSources(id, 'dub'), 
+        const dubResponse = await retryWithBackoff(() => 
+          fetch(`${EXTERNAL_API}/anime/${animeId}/${epNum}/servers?type=dub`).then(r => r.json()), 
           2, 
           500
         ).catch(() => null);
         
-        if (dubData && dubData.sources && dubData.sources.length > 0) {
-          const dubTracks = (dubData.tracks || []).map((t: any) => ({
-            file: t.url,
-            label: t.lang,
-            kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
-            default: t.lang === 'English'
-          }));
+        if (dubResponse && dubResponse.results && dubResponse.results.length > 0) {
+          const dubServer = dubResponse.results[0];
           transformedData.dub = {
             type: 'dub',
-            link: { file: dubData.sources[0].url },
-            tracks: dubTracks,
-            intro: dubData.intro || { start: 0, end: 0 },
-            outro: dubData.outro || { start: 0, end: 0 },
-            server: 'dub'
+            link: { file: dubServer.link || dubServer.url },
+            tracks: [],
+            intro: { start: 0, end: 0 },
+            outro: { start: 0, end: 0 },
+            server: dubServer.serverName || 'dub'
           };
         }
-        // If no DUB found, dub stays empty {}
       } catch (e) {
         // DUB not available - stays empty
       }
@@ -178,9 +181,8 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         data: transformedData
       });
     } catch (error: any) {
-      console.error('Aniwatch API error:', error.message);
-      const status = error.status === 500 || error.message.includes('client key') ? 503 : 400;
-      res.status(status).json({ error: 'Provider temporarily unavailable. Trying different server...' });
+      console.error('External API error:', error.message);
+      res.status(503).json({ error: 'Streaming source temporarily unavailable' });
     }
   } catch (error) {
     console.error('API error:', error);
