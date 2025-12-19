@@ -2088,12 +2088,13 @@
         streamData.sub = streamData.sub || {};
         streamData.dub = streamData.dub || {};
         
-        allServersData = result;
-        if (result.servers) {
-          servers = result.servers.map(s => ({ id: s.id, name: s.name }));
+        // Keep the existing servers list - don't overwrite with empty API response
+        // allServersData already has servers from initial load
+        if (result.servers && result.servers.length > 0) {
+          allServersData.servers = result.servers;
         }
         
-        populateServers();
+        // Don't call populateServers here - servers are already set
         updateAudioToggleVisibility();
         loadStream(currentAudioType);
 
@@ -2126,8 +2127,7 @@
           streamData.sub = streamData.sub || {};
           streamData.dub = streamData.dub || {};
           
-          allServersData = result;
-          populateServers();
+          // Keep servers list unchanged when switching servers
           updateAudioToggleVisibility();
           loadStream(currentAudioType);
         } else {
