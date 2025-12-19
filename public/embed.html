@@ -27,11 +27,11 @@
       width: 100%;
       height: 100%;
       background: #000;
-      cursor: auto;
+      cursor: none;
     }
 
-    .player-wrapper:not(.show-controls) {
-      cursor: none;
+    .player-wrapper.show-controls {
+      cursor: auto;
     }
 
     video {
@@ -167,11 +167,13 @@
       opacity: 0;
       transition: opacity 0.3s ease;
       z-index: 50;
+      pointer-events: none;
     }
 
     .player-wrapper:hover .controls-wrapper,
     .player-wrapper.show-controls .controls-wrapper {
       opacity: 1;
+      pointer-events: all;
     }
 
     .progress-container {
@@ -1159,9 +1161,10 @@
       display: flex;
       align-items: center;
       gap: 40px;
-      opacity: 0;
+      opacity: 1;
       transition: opacity 0.3s;
       z-index: 40;
+      pointer-events: all;
     }
 
     .player-wrapper:hover .center-controls,
