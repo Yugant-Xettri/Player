@@ -1454,6 +1454,7 @@
             <div class="settings-header">
               <div class="settings-tabs">
                 <button class="settings-tab-btn active" data-tab="quality" title="Quality" style="display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" class="jw-svg-icon jw-svg-icon-quality-100" viewBox="0 0 240 240" focusable="false" style="width:16px;height:16px;fill:currentColor;"><path d="M55,200H35c-3,0-5-2-5-4c0,0,0,0,0-1v-30c0-3,2-5,4-5c0,0,0,0,1,0h20c3,0,5,2,5,4c0,0,0,0,0,1v30C60,198,58,200,55,200L55,200z M110,195v-70c0-3-2-5-4-5c0,0,0,0-1,0H85c-3,0-5,2-5,4c0,0,0,0,0,1v70c0,3,2,5,4,5c0,0,0,0,1,0h20C108,200,110,198,110,195L110,195z M160,195V85c0-3-2-5-4-5c0,0,0,0-1,0h-20c-3,0-5,2-5,4c0,0,0,0,0,1v110c0,3,2,5,4,5c0,0,0,0,1,0h20C158,200,160,198,160,195L160,195z M210,195V45c0-3-2-5-4-5c0,0,0,0-1,0h-20c-3,0-5,2-5,4c0,0,0,0,0,1v150c0,3,2,5,4,5c0,0,0,0,1,0h20C208,200,210,198,210,195L210,195z"></path></svg></button>
+                <button class="settings-tab-btn" data-tab="servers" title="Servers" style="display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" style="width:16px;height:16px;fill:currentColor;"><path d="M3,4H21V6H3V4M3,9H21V11H3V9M3,14H21V16H3V14M3,19H21V21H3V19Z"></path></svg></button>
                 <button class="settings-tab-btn" data-tab="captions" title="Captions" style="display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" class="jw-svg-icon jw-svg-icon-cc-off" viewBox="0 0 240 240" focusable="false" style="width:16px;height:16px;fill:currentColor;"><path d="M99.4,97.8c-2.4-0.2-4.8,0.7-6.6,2.3c-1.7,1.7-2.5,4.1-2.4,6.5v25.6c0,9.6,11.6,11.4,17.7,5.5c0.7-0.7,1.5-1.5,2.4-2.3l6.6,7.8c-2.2,2.4-5,4.4-8,5.8c-8,3.5-17.3,2.4-24.3-2.9c-3.9-3.6-5.9-8.7-5.5-14v-25.6c0-2.7,0.5-5.3,1.5-7.8c0.9-2.2,2.4-4.3,4.2-5.9c5.7-4.5,13.2-6.2,20.3-4.6c3.3,0.5,6.3,2,8.7,4.3c1.3,1.3,2.5,2.6,3.5,4.2l-7.1,6.9C107.9,100,103.8,97.8,99.4,97.8z M144.1,97.8c-2.4-0.2-4.8,0.7-6.6,2.3c-1.7,1.7-2.5,4.1-2.4,6.5v25.6c0,9.6,11.6,11.4,17.7,5.5c0.7-0.7,1.5-1.5,2.4-2.3l6.6,7.8c-2.2,2.4-5,4.4-8,5.8c-8,3.5-17.3,2.4-24.3-2.9c-3.9-3.6-5.9-8.7-5.5-14v-25.6c0-2.7,0.5-5.3,1.5-7.8c0.9-2.2,2.4-4.3,4.2-5.9c5.7-4.5,13.2-6.2,20.3-4.6c3.3,0.5,6.3,2,8.7,4.3c1.3,1.3,2.5,2.6,3.5,4.2l-7.1,6.9C152.6,100,148.5,97.8,144.1,97.8L144.1,97.8z M200,60v120H40V60H200 M215,40H25c-2.7,0-5,2.2-5,5v150c0,2.7,2.2,5,5,5h190c2.7,0,5-2.2,5-5V45C220,42.2,217.8,40,215,40z"></path></svg></button>
                 <button class="settings-tab-btn" data-tab="speed" title="Speed" style="display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" class="jw-svg-icon jw-svg-icon-playback-rate" viewBox="0 0 240 240" focusable="false" style="width:16px;height:16px;fill:currentColor;"><path d="M158.83,48.83A71.17,71.17,0,1,0,230,120,71.163,71.163,0,0,0,158.83,48.83Zm45.293,77.632H152.34V74.708h12.952v38.83h38.83ZM35.878,74.708h38.83V87.66H35.878ZM10,113.538H61.755V126.49H10Zm25.878,38.83h38.83V165.32H35.878Z"></path></svg></button>
               </div>
@@ -1461,6 +1462,7 @@
             </div>
             <div class="settings-content">
               <div class="settings-section active" data-section="quality" id="qualitySection"></div>
+              <div class="settings-section" data-section="servers" id="serversSection"></div>
               <div class="settings-section" data-section="captions" id="captionsSection"></div>
               <div class="settings-section" data-section="speed" id="speedSection"></div>
             </div>
@@ -1581,6 +1583,7 @@
     const settingsMenu = document.getElementById('settingsMenu');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const qualitySection = document.getElementById('qualitySection');
+    const serversSection = document.getElementById('serversSection');
     const captionsSection = document.getElementById('captionsSection');
     const speedSection = document.getElementById('speedSection');
 
@@ -1623,6 +1626,7 @@
     let hls = null;
     let streamData = null;
     let currentAudioType = 'sub';
+    let currentServer = 'hd-2';
     let controlsTimeout = null;
     let introEnd = 0;
     let outroStart = 0;
@@ -1630,6 +1634,11 @@
     let thumbnailData = null;
     let thumbnailImg = new Image();
     const playbackSpeeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+    const servers = [
+      { id: 'hd-2', name: 'Server 1' },
+      { id: 'hd-1', name: 'Server 2' },
+      { id: 'std-1', name: 'Server 3' }
+    ];
 
     async function loadThumbnails(tracks) {
       if (!tracks || !Array.isArray(tracks) || tracks.length === 0) return;
@@ -1987,6 +1996,17 @@
       }
     }
 
+    function populateServers() {
+      serversSection.innerHTML = '';
+      servers.forEach(server => {
+        const option = document.createElement('div');
+        option.className = 'settings-option' + (server.id === currentServer ? ' active' : '');
+        option.dataset.value = server.id;
+        option.innerHTML = `<span>${server.name}</span><span class="check">✓</span>`;
+        serversSection.appendChild(option);
+      });
+    }
+
     async function init() {
       const id = getIdFromUrl();
       if (!id) {
@@ -1995,7 +2015,7 @@
       }
 
       try {
-        const response = await fetch('/api/stream?id=' + encodeURIComponent(id));
+        const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + currentServer);
         const result = await response.json();
 
         if (!result.success || !result.data) {
@@ -2007,12 +2027,36 @@
         streamData.sub = streamData.sub || {};
         streamData.dub = streamData.dub || {};
         
+        populateServers();
         updateAudioToggleVisibility();
         loadStream(currentAudioType);
 
       } catch (error) {
         console.error('Init error:', error);
         showError('Error: ' + error.message);
+      }
+    }
+
+    async function switchServer(serverId) {
+      currentServer = serverId;
+      showLoading(true);
+      try {
+        const id = getIdFromUrl();
+        const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + serverId);
+        const result = await response.json();
+        if (result.success && result.data) {
+          streamData = result.data;
+          streamData.sub = streamData.sub || {};
+          streamData.dub = streamData.dub || {};
+          populateServers();
+          updateAudioToggleVisibility();
+          loadStream(currentAudioType);
+        } else {
+          showError('Failed to switch server');
+        }
+      } catch (error) {
+        console.error('Server switch error:', error);
+        showError('Error switching server: ' + error.message);
       }
     }
 
@@ -2187,6 +2231,10 @@
           option.classList.add('active');
           const level = parseInt(option.dataset.value);
           if (hls) hls.currentLevel = level;
+        } else if (section.id === 'serversSection') {
+          serversSection.querySelectorAll('.settings-option').forEach(o => o.classList.remove('active'));
+          option.classList.add('active');
+          switchServer(option.dataset.value);
         } else if (section.id === 'captionsSection') {
           captionsSection.querySelectorAll('.settings-option').forEach(o => o.classList.remove('active'));
           option.classList.add('active');
