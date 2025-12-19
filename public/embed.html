@@ -1943,18 +1943,18 @@
           lowLatencyMode: false,
           manifestLoadPolicy: {
             default: {
-              maxTimeToFirstByteMs: 10000,
-              maxLoadTimeMs: 20000,
-              timeoutRetry: { maxNumRetry: 3, retryDelayMs: 0, maxRetryDelayMs: 0 },
-              errorRetry: { maxNumRetry: 3, retryDelayMs: 1000, maxRetryDelayMs: 8000 }
+              maxTimeToFirstByteMs: 5000,
+              maxLoadTimeMs: 10000,
+              timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
+              errorRetry: { maxNumRetry: 2, retryDelayMs: 500, maxRetryDelayMs: 3000 }
             }
           },
           fragLoadPolicy: {
             default: {
-              maxTimeToFirstByteMs: 10000,
-              maxLoadTimeMs: 120000,
-              timeoutRetry: { maxNumRetry: 4, retryDelayMs: 0, maxRetryDelayMs: 0 },
-              errorRetry: { maxNumRetry: 6, retryDelayMs: 1000, maxRetryDelayMs: 8000 }
+              maxTimeToFirstByteMs: 5000,
+              maxLoadTimeMs: 60000,
+              timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
+              errorRetry: { maxNumRetry: 3, retryDelayMs: 500, maxRetryDelayMs: 3000 }
             }
           }
         });
@@ -1962,7 +1962,14 @@
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
 
+        // Add timeout for manifest loading
+        let manifestTimeout = setTimeout(() => {
+          console.warn('HLS manifest loading timeout - stopping loader');
+          showLoading(false);
+        }, 10000);
+
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          clearTimeout(manifestTimeout);
           showLoading(false);
           populateQualityLevels();
           // Populate subtitles from all available sources (merged SUB + DUB)
