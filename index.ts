@@ -127,24 +127,24 @@ app.get('/api/stream', async (req: Request, res: Response) => {
     };
 
     try {
-      // Try fetching from aniwatch scraper for SUB
-      console.log(`⏳ Attempting to fetch SUB from aniwatch...`);
+      // Try fetching SUB stream with category='sub'
+      console.log(`⏳ Attempting to fetch SUB stream from ${serverParam}...`);
       const streamData = await retryWithBackoff(() => 
-        scraper.getEpisodeSources(id, serverParam as any), 
+        scraper.getEpisodeSources(id, serverParam as any, 'sub' as any), 
         3, 
         1000
       );
       
       if (streamData && streamData.sources && streamData.sources.length > 0) {
         transformedData.sub.link.file = streamData.sources[0].url;
-        console.log(`✅ SUB stream found on server ${serverParam}`);
+        console.log(`✅ SUB stream found on ${serverParam}`);
       }
 
-      // Try to fetch DUB from alternate server
+      // Try to fetch DUB stream with same server, category='dub'
       try {
-        console.log(`⏳ Attempting to fetch DUB...`);
+        console.log(`⏳ Attempting to fetch DUB stream from ${serverParam}...`);
         const dubData = await retryWithBackoff(() => 
-          scraper.getEpisodeSources(id, 'dub' as any), 
+          scraper.getEpisodeSources(id, serverParam as any, 'dub' as any), 
           2, 
           500
         ).catch(() => null);
@@ -156,12 +156,12 @@ app.get('/api/stream', async (req: Request, res: Response) => {
             tracks: [],
             intro: { start: 0, end: 0 },
             outro: { start: 0, end: 0 },
-            server: 'dub'
+            server: serverParam
           };
-          console.log(`✅ DUB stream found`);
+          console.log(`✅ DUB stream found on ${serverParam}`);
         }
       } catch (e) {
-        console.log(`⚠️ DUB not available`);
+        console.log(`⚠️ DUB not available on ${serverParam}`);
       }
     } catch (error: any) {
       console.log(`⚠️ Stream fetch error (graceful): ${error.message}`);
