@@ -101,13 +101,16 @@ class PlayerConnect {
         if (streamData && streamData.sources && streamData.sources.length > 0) {
           transformedData.sub.link.file = streamData.sources[0].url;
           
-          if (streamData.subtitles && Array.isArray(streamData.subtitles)) {
-            transformedData.sub.tracks = streamData.subtitles.map((t: any) => ({
-              file: t.url,
-              label: t.lang || 'Unknown',
-              kind: 'captions',
-              default: t.default || false
-            }));
+          // Get subtitles from tracks array (main subtitle source)
+          if (streamData.tracks && Array.isArray(streamData.tracks)) {
+            transformedData.sub.tracks = streamData.tracks
+              .filter((t: any) => t.lang !== 'thumbnails') // Skip thumbnail tracks
+              .map((t: any) => ({
+                file: t.url,
+                label: t.lang || 'Unknown',
+                kind: 'captions',
+                default: t.default || false
+              }));
           }
           console.log(`[PlayerConnect] ✅ SUB stream found on ${serverParam} with ${transformedData.sub.tracks.length} subtitle tracks`);
         }
@@ -123,13 +126,16 @@ class PlayerConnect {
           
           if (dubData && dubData.sources && dubData.sources.length > 0) {
             const dubTracks: any[] = [];
-            if (dubData.subtitles && Array.isArray(dubData.subtitles)) {
-              dubTracks.push(...dubData.subtitles.map((t: any) => ({
-                file: t.url,
-                label: t.lang || 'Unknown',
-                kind: 'captions',
-                default: t.default || false
-              })));
+            // Get subtitles from tracks array
+            if (dubData.tracks && Array.isArray(dubData.tracks)) {
+              dubTracks.push(...dubData.tracks
+                .filter((t: any) => t.lang !== 'thumbnails') // Skip thumbnail tracks
+                .map((t: any) => ({
+                  file: t.url,
+                  label: t.lang || 'Unknown',
+                  kind: 'captions',
+                  default: t.default || false
+                })));
             }
             
             transformedData.dub = {
