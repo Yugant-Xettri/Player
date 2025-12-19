@@ -1,9 +1,10 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
+import { HiAnime } from 'aniwatch';
 
 const app = express();
-const EXTERNAL_API = 'https://anime-api-rose-delta.vercel.app/api';
+const scraper = new HiAnime.Scraper();
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -108,11 +109,9 @@ app.get('/api/stream', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Episode ID is required', success: false });
     }
 
-    // Parse anime-id and episode number from format "anime-id?ep=number" or "anime-id::ep=number"
+    // Convert format from "anime-id::ep=number" to "anime-id?ep=number"
     id = id.replace('::', '?');
-    const parts = id.split('?ep=');
-    const animeId = parts[0];
-    const epNum = parts[1] || '1';
+    console.log(`🎬 Fetching stream for: ${id} on server: ${server}`);
 
     // Return response with empty streams but allow controls to work
     const transformedData: any = {
@@ -128,30 +127,65 @@ app.get('/api/stream', async (req: Request, res: Response) => {
     };
 
     try {
-      // Try fetching from external API - but don't fail if it doesn't work
-      const streamUrl = `${EXTERNAL_API}/streaming-info?episode_id=${animeId}-episode-${epNum}`;
-      console.log(`Fetching from: ${streamUrl}`);
+      // Try fetching from aniwatch scraper
+      console.log(`⏳ Attempting to fetch from aniwatch...`);
+      const streamData = await retryWithBackoff(() => 
+        scraper.getEpisodeSources(id, server), 
+        3, 
+        1000
+      );
       
-      const response = await fetch(streamUrl, {
-        signal: AbortSignal.timeout(5000)
-      }).then(r => {
-        if (!r.ok) throw new Error('API returned ' + r.status);
-        return r.json();
-      }).catch(() => null);
-      
-      if (response?.results?.sources && response.results.sources.length > 0) {
-        const source = response.results.sources.find((s: any) => 
-          s.url || s.link
-        ) || response.results.sources[0];
+      if (streamData && streamData.sources && streamData.sources.length > 0) {
+        transformedData.sub.link.file = streamData.sources[0].url;
         
-        if (source) {
-          transformedData.sub.link.file = source.url || source.link;
-          console.log(`Found stream: ${transformedData.sub.link.file}`);
+        // Add subtitle tracks
+        if (streamData.tracks && streamData.tracks.length > 0) {
+          transformedData.sub.tracks = streamData.tracks.map((t: any) => ({
+            file: t.url,
+            label: t.lang,
+            kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
+            default: t.lang === 'English'
+          }));
         }
+        
+        // Add intro/outro timings
+        if (streamData.intro) transformedData.sub.intro = streamData.intro;
+        if (streamData.outro) transformedData.sub.outro = streamData.outro;
+        
+        console.log(`✅ SUB stream found with ${transformedData.sub.tracks.length} tracks`);
+      }
+
+      // Try to fetch DUB
+      try {
+        const dubData = await retryWithBackoff(() => 
+          scraper.getEpisodeSources(id, 'dub'), 
+          2, 
+          500
+        ).catch(() => null);
+        
+        if (dubData && dubData.sources && dubData.sources.length > 0) {
+          const dubTracks = dubData.tracks ? dubData.tracks.map((t: any) => ({
+            file: t.url,
+            label: t.lang,
+            kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
+            default: t.lang === 'English'
+          })) : [];
+          
+          transformedData.dub = {
+            type: 'dub',
+            link: { file: dubData.sources[0].url },
+            tracks: dubTracks,
+            intro: dubData.intro || { start: 0, end: 0 },
+            outro: dubData.outro || { start: 0, end: 0 },
+            server: 'dub'
+          };
+          console.log(`✅ DUB stream found with ${dubTracks.length} tracks`);
+        }
+      } catch (e) {
+        console.log(`⚠️ DUB not available`);
       }
     } catch (error: any) {
-      console.log(`API call failed (graceful): ${error.message}`);
-      // Continue - return response with null stream so UI can show controls
+      console.log(`⚠️ Aniwatch error (graceful): ${error.message}`);
     }
       
     res.json({
@@ -161,7 +195,6 @@ app.get('/api/stream', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('API error:', error);
-    // Return successful response but with empty stream
     res.json({
       success: true,
       data: {
