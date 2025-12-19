@@ -2104,11 +2104,51 @@
       });
     }
 
-    // Cache utility functions
-    const CACHE_EXPIRY_MS = 3600000; // 1 hour cache TTL
+    // Cache utility functions with encryption
+    const CACHE_EXPIRY_MS = 14400000; // 4 hours cache TTL (3-5 hour range)
+    const ENCRYPTION_KEY = 'stream_protect_key_2024'; // Secret key for encryption
 
     function getCacheKey(id, serverId) {
       return `stream_cache_${id}_${serverId}`;
+    }
+
+    // Simple encryption function to protect against casual scraping
+    function encryptData(data, key) {
+      try {
+        const jsonString = JSON.stringify(data);
+        const encoded = btoa(jsonString); // Base64 encode
+        
+        // Simple cipher: XOR with key repeated
+        let encrypted = '';
+        for (let i = 0; i < encoded.length; i++) {
+          const charCode = encoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+          encrypted += String.fromCharCode(charCode);
+        }
+        return btoa(encrypted); // Double encode for storage
+      } catch (error) {
+        console.error('Encryption error:', error);
+        return null;
+      }
+    }
+
+    // Decryption function
+    function decryptData(encrypted, key) {
+      try {
+        const decoded = atob(encrypted); // First decode
+        
+        // Reverse XOR cipher
+        let decrypted = '';
+        for (let i = 0; i < decoded.length; i++) {
+          const charCode = decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+          decrypted += String.fromCharCode(charCode);
+        }
+        
+        const jsonString = atob(decrypted); // Decode Base64
+        return JSON.parse(jsonString);
+      } catch (error) {
+        console.error('Decryption error:', error);
+        return null;
+      }
     }
 
     function getFromCache(id, serverId) {
@@ -2117,7 +2157,11 @@
         const cached = localStorage.getItem(cacheKey);
         if (!cached) return null;
 
-        const { data, timestamp } = JSON.parse(cached);
+        // Decrypt the stored data
+        const decrypted = decryptData(cached, ENCRYPTION_KEY);
+        if (!decrypted) return null;
+
+        const { data, timestamp } = decrypted;
         const age = Date.now() - timestamp;
         
         if (age > CACHE_EXPIRY_MS) {
@@ -2138,14 +2182,29 @@
           data: data,
           timestamp: Date.now()
         };
-        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+        
+        // Encrypt before storing
+        const encrypted = encryptData(cacheData, ENCRYPTION_KEY);
+        if (!encrypted) {
+          console.warn('Failed to encrypt cache data');
+          return;
+        }
+        
+        localStorage.setItem(cacheKey, encrypted);
       } catch (error) {
         if (error.name === 'QuotaExceededError') {
           // Clear oldest cache entries if storage is full
           clearOldestCache();
           try {
             const cacheKey = getCacheKey(id, serverId);
-            localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+            const cacheData = {
+              data: data,
+              timestamp: Date.now()
+            };
+            const encrypted = encryptData(cacheData, ENCRYPTION_KEY);
+            if (encrypted) {
+              localStorage.setItem(cacheKey, encrypted);
+            }
           } catch (e) {
             console.warn('Failed to save to cache after cleanup:', e);
           }
