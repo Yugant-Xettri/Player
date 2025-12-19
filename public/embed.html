@@ -2104,6 +2104,81 @@
       });
     }
 
+    // Cache utility functions
+    const CACHE_EXPIRY_MS = 3600000; // 1 hour cache TTL
+
+    function getCacheKey(id, serverId) {
+      return `stream_cache_${id}_${serverId}`;
+    }
+
+    function getFromCache(id, serverId) {
+      try {
+        const cacheKey = getCacheKey(id, serverId);
+        const cached = localStorage.getItem(cacheKey);
+        if (!cached) return null;
+
+        const { data, timestamp } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+        
+        if (age > CACHE_EXPIRY_MS) {
+          localStorage.removeItem(cacheKey);
+          return null;
+        }
+        return data;
+      } catch (error) {
+        console.error('Cache read error:', error);
+        return null;
+      }
+    }
+
+    function saveToCache(id, serverId, data) {
+      try {
+        const cacheKey = getCacheKey(id, serverId);
+        const cacheData = {
+          data: data,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          // Clear oldest cache entries if storage is full
+          clearOldestCache();
+          try {
+            const cacheKey = getCacheKey(id, serverId);
+            localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+          } catch (e) {
+            console.warn('Failed to save to cache after cleanup:', e);
+          }
+        }
+      }
+    }
+
+    function clearOldestCache() {
+      try {
+        const keys = Object.keys(localStorage);
+        const cacheKeys = keys.filter(k => k.startsWith('stream_cache_'));
+        
+        if (cacheKeys.length === 0) return;
+
+        let oldest = { key: cacheKeys[0], timestamp: Infinity };
+        
+        cacheKeys.forEach(key => {
+          try {
+            const cached = JSON.parse(localStorage.getItem(key));
+            if (cached && cached.timestamp < oldest.timestamp) {
+              oldest = { key, timestamp: cached.timestamp };
+            }
+          } catch (e) {
+            localStorage.removeItem(key);
+          }
+        });
+
+        if (oldest.key) localStorage.removeItem(oldest.key);
+      } catch (error) {
+        console.error('Error clearing cache:', error);
+      }
+    }
+
     async function init() {
       const id = getIdFromUrl();
       if (!id) {
@@ -2122,8 +2197,19 @@
       populateServers();
 
       try {
-        const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + currentServer);
-        const result = await response.json();
+        // Check cache first
+        let result = getFromCache(id, currentServer);
+        
+        if (!result) {
+          // Fetch from server if not in cache
+          const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + currentServer);
+          result = await response.json();
+          
+          // Save to cache for future use
+          if (result.success && result.data) {
+            saveToCache(id, currentServer, result);
+          }
+        }
 
         if (!result.success || !result.data) {
           showError('Failed to load stream data');
@@ -2165,10 +2251,23 @@
       
       try {
         const id = getIdFromUrl();
-        const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + serverId, { 
-          signal: AbortSignal.timeout(15000)
-        });
-        const result = await response.json();
+        
+        // Check cache first
+        let result = getFromCache(id, serverId);
+        
+        if (!result) {
+          // Fetch from server if not in cache
+          const response = await fetch('/api/stream?id=' + encodeURIComponent(id) + '&server=' + serverId, { 
+            signal: AbortSignal.timeout(15000)
+          });
+          result = await response.json();
+          
+          // Save to cache for future use
+          if (result.success && result.data) {
+            saveToCache(id, serverId, result);
+          }
+        }
+        
         if (result.success && result.data) {
           streamData = result.data;
           streamData.sub = streamData.sub || {};
