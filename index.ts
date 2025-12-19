@@ -48,7 +48,7 @@ app.get('/proxy', async (req: Request, res: Response) => {
 
     const response = await fetch(targetUrl, {
       headers: {
-        'Referer': 'https://vidwish.live/',
+        'Referer': 'https://megacloud.blog/',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
