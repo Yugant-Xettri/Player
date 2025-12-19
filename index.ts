@@ -222,8 +222,8 @@ app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) 
         name: serverName.charAt(0).toUpperCase() + serverName.slice(1),
         id: serverName,
         sources: {
-          sub: { type: 'sub', link: null, captions: [] },
-          dub: { type: 'dub', link: null, captions: [] }
+          sub: { type: 'sub', link: null, captions: {} },
+          dub: { type: 'dub', link: null, captions: {} }
         }
       };
       
@@ -236,11 +236,14 @@ app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) 
         
         if (subData?.sources?.[0]?.url) {
           serverObj.sources.sub.link = subData.sources[0].url;
+          // Format captions as { "Language": "url" }
           if (subData.subtitles?.length) {
-            serverObj.sources.sub.captions = subData.subtitles.map((t: any) => ({
-              lang: t.lang || 'Unknown',
-              url: t.url
-            }));
+            const captionsObj: any = {};
+            subData.subtitles.forEach((t: any) => {
+              const lang = t.lang || 'Unknown';
+              captionsObj[lang] = t.url;
+            });
+            serverObj.sources.sub.captions = captionsObj;
           }
         }
       } catch (e) {
@@ -256,11 +259,14 @@ app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) 
         
         if (dubData?.sources?.[0]?.url) {
           serverObj.sources.dub.link = dubData.sources[0].url;
+          // Format captions as { "Language": "url" }
           if (dubData.subtitles?.length) {
-            serverObj.sources.dub.captions = dubData.subtitles.map((t: any) => ({
-              lang: t.lang || 'Unknown',
-              url: t.url
-            }));
+            const captionsObj: any = {};
+            dubData.subtitles.forEach((t: any) => {
+              const lang = t.lang || 'Unknown';
+              captionsObj[lang] = t.url;
+            });
+            serverObj.sources.dub.captions = captionsObj;
           }
         }
       } catch (e) {
@@ -299,8 +305,8 @@ app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
         name: serverName.charAt(0).toUpperCase() + serverName.slice(1),
         id: serverName,
         sources: {
-          sub: { type: 'sub', link: null, captions: [] },
-          dub: { type: 'dub', link: null, captions: [] }
+          sub: { type: 'sub', link: null, captions: {} },
+          dub: { type: 'dub', link: null, captions: {} }
         }
       };
       
@@ -313,11 +319,14 @@ app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
         
         if (subData?.sources?.[0]?.url) {
           serverObj.sources.sub.link = subData.sources[0].url;
+          // Format captions as { "Language": "url" }
           if (subData.subtitles?.length) {
-            serverObj.sources.sub.captions = subData.subtitles.map((t: any) => ({
-              lang: t.lang || 'Unknown',
-              url: t.url
-            }));
+            const captionsObj: any = {};
+            subData.subtitles.forEach((t: any) => {
+              const lang = t.lang || 'Unknown';
+              captionsObj[lang] = t.url;
+            });
+            serverObj.sources.sub.captions = captionsObj;
           }
         }
       } catch (e) {
@@ -333,11 +342,14 @@ app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
         
         if (dubData?.sources?.[0]?.url) {
           serverObj.sources.dub.link = dubData.sources[0].url;
+          // Format captions as { "Language": "url" }
           if (dubData.subtitles?.length) {
-            serverObj.sources.dub.captions = dubData.subtitles.map((t: any) => ({
-              lang: t.lang || 'Unknown',
-              url: t.url
-            }));
+            const captionsObj: any = {};
+            dubData.subtitles.forEach((t: any) => {
+              const lang = t.lang || 'Unknown';
+              captionsObj[lang] = t.url;
+            });
+            serverObj.sources.dub.captions = captionsObj;
           }
         }
       } catch (e) {
