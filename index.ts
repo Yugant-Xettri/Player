@@ -236,14 +236,17 @@ app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) 
         
         if (subData?.sources?.[0]?.url) {
           serverObj.sources.sub.link = subData.sources[0].url;
-          // Format captions as { "Language": "url" }
-          if (subData.subtitles?.length) {
+          // Format captions as { "Language": "url" } from tracks array
+          if (subData.tracks?.length) {
             const captionsObj: any = {};
-            subData.subtitles.forEach((t: any) => {
-              const lang = t.lang || 'Unknown';
-              captionsObj[lang] = t.url;
+            subData.tracks.forEach((t: any) => {
+              // Skip thumbnails track
+              if (t.lang && t.lang !== 'thumbnails' && t.url) {
+                captionsObj[t.lang] = t.url;
+              }
             });
             serverObj.sources.sub.captions = captionsObj;
+            console.log(`✅ Found ${Object.keys(captionsObj).length} caption languages for SUB on ${serverName}`);
           }
         }
       } catch (e) {
@@ -259,14 +262,17 @@ app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) 
         
         if (dubData?.sources?.[0]?.url) {
           serverObj.sources.dub.link = dubData.sources[0].url;
-          // Format captions as { "Language": "url" }
-          if (dubData.subtitles?.length) {
+          // Format captions as { "Language": "url" } from tracks array
+          if (dubData.tracks?.length) {
             const captionsObj: any = {};
-            dubData.subtitles.forEach((t: any) => {
-              const lang = t.lang || 'Unknown';
-              captionsObj[lang] = t.url;
+            dubData.tracks.forEach((t: any) => {
+              // Skip thumbnails track
+              if (t.lang && t.lang !== 'thumbnails' && t.url) {
+                captionsObj[t.lang] = t.url;
+              }
             });
             serverObj.sources.dub.captions = captionsObj;
+            console.log(`✅ Found ${Object.keys(captionsObj).length} caption languages for DUB on ${serverName}`);
           }
         }
       } catch (e) {
@@ -319,14 +325,17 @@ app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
         
         if (subData?.sources?.[0]?.url) {
           serverObj.sources.sub.link = subData.sources[0].url;
-          // Format captions as { "Language": "url" }
-          if (subData.subtitles?.length) {
+          // Format captions as { "Language": "url" } from tracks array
+          if (subData.tracks?.length) {
             const captionsObj: any = {};
-            subData.subtitles.forEach((t: any) => {
-              const lang = t.lang || 'Unknown';
-              captionsObj[lang] = t.url;
+            subData.tracks.forEach((t: any) => {
+              // Skip thumbnails track
+              if (t.lang && t.lang !== 'thumbnails' && t.url) {
+                captionsObj[t.lang] = t.url;
+              }
             });
             serverObj.sources.sub.captions = captionsObj;
+            console.log(`✅ Found ${Object.keys(captionsObj).length} caption languages for SUB on ${serverName}`);
           }
         }
       } catch (e) {
@@ -342,14 +351,17 @@ app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
         
         if (dubData?.sources?.[0]?.url) {
           serverObj.sources.dub.link = dubData.sources[0].url;
-          // Format captions as { "Language": "url" }
-          if (dubData.subtitles?.length) {
+          // Format captions as { "Language": "url" } from tracks array
+          if (dubData.tracks?.length) {
             const captionsObj: any = {};
-            dubData.subtitles.forEach((t: any) => {
-              const lang = t.lang || 'Unknown';
-              captionsObj[lang] = t.url;
+            dubData.tracks.forEach((t: any) => {
+              // Skip thumbnails track
+              if (t.lang && t.lang !== 'thumbnails' && t.url) {
+                captionsObj[t.lang] = t.url;
+              }
             });
             serverObj.sources.dub.captions = captionsObj;
+            console.log(`✅ Found ${Object.keys(captionsObj).length} caption languages for DUB on ${serverName}`);
           }
         }
       } catch (e) {
