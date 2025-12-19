@@ -27,6 +27,11 @@
       width: 100%;
       height: 100%;
       background: #000;
+      cursor: auto;
+    }
+
+    .player-wrapper:not(.show-controls) {
+      cursor: none;
     }
 
     video {
@@ -2489,6 +2494,8 @@
 
     playerWrapper.addEventListener('mousemove', showControls);
     playerWrapper.addEventListener('click', showControls);
+    playerWrapper.addEventListener('touchmove', showControls);
+    playerWrapper.addEventListener('touchend', showControls);
 
     let lastTapLeft = 0;
     let lastTapRight = 0;
