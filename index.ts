@@ -210,75 +210,65 @@ app.get('/api/stream', async (req: Request, res: Response) => {
 app.get('/api/stream/:type/:tvId/ep/:epid', async (req: Request, res: Response) => {
   try {
     const { type, tvId, epid } = req.params;
+    let id = `${tvId}?ep=${epid}`;
     
     console.log(`📺 Fetching ${type} ${tvId} - Episode ${epid}`);
     
-    const servers = [
-      {
-        name: 'Server 1',
-        id: 'server-1',
+    const serverList = ['hd-1', 'hd-2', 'hd-3'];
+    const servers = [];
+    
+    for (const serverName of serverList) {
+      const serverObj: any = {
+        name: serverName.charAt(0).toUpperCase() + serverName.slice(1),
+        id: serverName,
         sources: {
-          sub: {
-            type: 'sub',
-            link: `https://stream.example.com/${type}/${tvId}/ep${epid}/sub`,
-            captions: [
-              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/ep${epid}/sub.vtt` },
-              { lang: 'Spanish', url: `https://stream.example.com/${type}/${tvId}/ep${epid}/sub-es.vtt` }
-            ]
-          },
-          dub: {
-            type: 'dub',
-            link: `https://stream.example.com/${type}/${tvId}/ep${epid}/dub`,
-            captions: [
-              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/ep${epid}/dub.vtt` }
-            ]
+          sub: { type: 'sub', link: null, captions: [] },
+          dub: { type: 'dub', link: null, captions: [] }
+        }
+      };
+      
+      try {
+        // Fetch SUB stream
+        const subData = await retryWithBackoff(() => 
+          scraper.getEpisodeSources(id, serverName as any, 'sub' as any), 
+          2, 500
+        ).catch(() => null);
+        
+        if (subData?.sources?.[0]?.url) {
+          serverObj.sources.sub.link = subData.sources[0].url;
+          if (subData.subtitles?.length) {
+            serverObj.sources.sub.captions = subData.subtitles.map((t: any) => ({
+              lang: t.lang || 'Unknown',
+              url: t.url
+            }));
           }
         }
-      },
-      {
-        name: 'Server 2',
-        id: 'server-2',
-        sources: {
-          sub: {
-            type: 'sub',
-            link: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/sub`,
-            captions: [
-              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/sub.vtt` },
-              { lang: 'German', url: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/sub-de.vtt` }
-            ]
-          },
-          dub: {
-            type: 'dub',
-            link: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/dub`,
-            captions: [
-              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/ep${epid}/dub.vtt` }
-            ]
-          }
-        }
-      },
-      {
-        name: 'Server 3',
-        id: 'server-3',
-        sources: {
-          sub: {
-            type: 'sub',
-            link: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub`,
-            captions: [
-              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub.vtt` },
-              { lang: 'French', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub-fr.vtt` },
-              { lang: 'Italian', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/sub-it.vtt` }
-            ]
-          },
-          dub: {
-            type: 'dub',
-            link: `https://mirror.example.com/${type}/${tvId}/ep${epid}/dub`,
-            captions: [
-              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/ep${epid}/dub.vtt` }
-            ]
-          }
-        }
+      } catch (e) {
+        console.log(`⚠️ SUB not available on ${serverName}`);
       }
-    ];
+      
+      try {
+        // Fetch DUB stream
+        const dubData = await retryWithBackoff(() => 
+          scraper.getEpisodeSources(id, serverName as any, 'dub' as any), 
+          2, 500
+        ).catch(() => null);
+        
+        if (dubData?.sources?.[0]?.url) {
+          serverObj.sources.dub.link = dubData.sources[0].url;
+          if (dubData.subtitles?.length) {
+            serverObj.sources.dub.captions = dubData.subtitles.map((t: any) => ({
+              lang: t.lang || 'Unknown',
+              url: t.url
+            }));
+          }
+        }
+      } catch (e) {
+        console.log(`⚠️ DUB not available on ${serverName}`);
+      }
+      
+      servers.push(serverObj);
+    }
     
     res.json({
       success: true,
@@ -301,72 +291,61 @@ app.get('/api/stream/:type/:tvId', async (req: Request, res: Response) => {
     
     console.log(`📺 Fetching ${type} ${tvId}`);
     
-    const servers = [
-      {
-        name: 'Server 1',
-        id: 'server-1',
+    const serverList = ['hd-1', 'hd-2', 'hd-3'];
+    const servers = [];
+    
+    for (const serverName of serverList) {
+      const serverObj: any = {
+        name: serverName.charAt(0).toUpperCase() + serverName.slice(1),
+        id: serverName,
         sources: {
-          sub: {
-            type: 'sub',
-            link: `https://stream.example.com/${type}/${tvId}/sub`,
-            captions: [
-              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/sub.vtt` },
-              { lang: 'Spanish', url: `https://stream.example.com/${type}/${tvId}/sub-es.vtt` }
-            ]
-          },
-          dub: {
-            type: 'dub',
-            link: `https://stream.example.com/${type}/${tvId}/dub`,
-            captions: [
-              { lang: 'English', url: `https://stream.example.com/${type}/${tvId}/dub.vtt` }
-            ]
+          sub: { type: 'sub', link: null, captions: [] },
+          dub: { type: 'dub', link: null, captions: [] }
+        }
+      };
+      
+      try {
+        // Fetch SUB stream
+        const subData = await retryWithBackoff(() => 
+          scraper.getEpisodeSources(tvId, serverName as any, 'sub' as any), 
+          2, 500
+        ).catch(() => null);
+        
+        if (subData?.sources?.[0]?.url) {
+          serverObj.sources.sub.link = subData.sources[0].url;
+          if (subData.subtitles?.length) {
+            serverObj.sources.sub.captions = subData.subtitles.map((t: any) => ({
+              lang: t.lang || 'Unknown',
+              url: t.url
+            }));
           }
         }
-      },
-      {
-        name: 'Server 2',
-        id: 'server-2',
-        sources: {
-          sub: {
-            type: 'sub',
-            link: `https://cdn2.example.com/${type}/${tvId}/sub`,
-            captions: [
-              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/sub.vtt` },
-              { lang: 'German', url: `https://cdn2.example.com/${type}/${tvId}/sub-de.vtt` }
-            ]
-          },
-          dub: {
-            type: 'dub',
-            link: `https://cdn2.example.com/${type}/${tvId}/dub`,
-            captions: [
-              { lang: 'English', url: `https://cdn2.example.com/${type}/${tvId}/dub.vtt` }
-            ]
-          }
-        }
-      },
-      {
-        name: 'Server 3',
-        id: 'server-3',
-        sources: {
-          sub: {
-            type: 'sub',
-            link: `https://mirror.example.com/${type}/${tvId}/sub`,
-            captions: [
-              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/sub.vtt` },
-              { lang: 'French', url: `https://mirror.example.com/${type}/${tvId}/sub-fr.vtt` },
-              { lang: 'Italian', url: `https://mirror.example.com/${type}/${tvId}/sub-it.vtt` }
-            ]
-          },
-          dub: {
-            type: 'dub',
-            link: `https://mirror.example.com/${type}/${tvId}/dub`,
-            captions: [
-              { lang: 'English', url: `https://mirror.example.com/${type}/${tvId}/dub.vtt` }
-            ]
-          }
-        }
+      } catch (e) {
+        console.log(`⚠️ SUB not available on ${serverName}`);
       }
-    ];
+      
+      try {
+        // Fetch DUB stream
+        const dubData = await retryWithBackoff(() => 
+          scraper.getEpisodeSources(tvId, serverName as any, 'dub' as any), 
+          2, 500
+        ).catch(() => null);
+        
+        if (dubData?.sources?.[0]?.url) {
+          serverObj.sources.dub.link = dubData.sources[0].url;
+          if (dubData.subtitles?.length) {
+            serverObj.sources.dub.captions = dubData.subtitles.map((t: any) => ({
+              lang: t.lang || 'Unknown',
+              url: t.url
+            }));
+          }
+        }
+      } catch (e) {
+        console.log(`⚠️ DUB not available on ${serverName}`);
+      }
+      
+      servers.push(serverObj);
+    }
     
     res.json({
       success: true,
