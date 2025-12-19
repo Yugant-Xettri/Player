@@ -1973,7 +1973,7 @@
           showLoading(false);
           populateQualityLevels();
           // Populate subtitles from all available sources (merged SUB + DUB)
-          populateSubtitles(source.tracks || []);
+          populateSubtitles();
           loadThumbnails(source.tracks || []);
           if (currentTime > 0) {
             video.currentTime = currentTime;
@@ -2005,7 +2005,7 @@
         video.src = hlsUrl;
         video.addEventListener('loadedmetadata', () => {
           showLoading(false);
-          populateSubtitles(source.tracks || []);
+          populateSubtitles();
           loadThumbnails(source.tracks || []);
           if (currentTime > 0) {
             video.currentTime = currentTime;
