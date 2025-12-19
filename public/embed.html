@@ -2500,6 +2500,14 @@
     playerWrapper.addEventListener('click', showControls);
     playerWrapper.addEventListener('touchmove', showControls);
     playerWrapper.addEventListener('touchend', showControls);
+    playerWrapper.addEventListener('mouseleave', () => {
+      clearTimeout(controlsTimeout);
+      const settingsMenuOpen = document.querySelector('.settings-menu.show');
+      const ccModalOpen = document.querySelector('.cc-modal-overlay.show');
+      if (!settingsMenuOpen && !ccModalOpen) {
+        playerWrapper.classList.remove('show-controls');
+      }
+    });
 
     let lastTapLeft = 0;
     let lastTapRight = 0;
