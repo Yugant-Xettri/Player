@@ -1815,18 +1815,39 @@
 
     function populateSubtitles(tracks) {
       captionsSection.innerHTML = '<div class="settings-option active" data-value=""><span>Off</span><span class="check">✓</span></div>';
-      if (!tracks || !Array.isArray(tracks)) return;
-      const captionTracks = tracks.filter(t => t && t.kind === 'captions');
-      captionTracks.forEach(track => {
+      
+      // Merge subtitle tracks from both SUB and DUB for unified caption selection
+      let allTracks = [];
+      if (streamData.sub && Array.isArray(streamData.sub.tracks)) {
+        allTracks = allTracks.concat(streamData.sub.tracks);
+      }
+      if (streamData.dub && Array.isArray(streamData.dub.tracks)) {
+        allTracks = allTracks.concat(streamData.dub.tracks);
+      }
+      
+      // Remove duplicates by language
+      const seenLangs = new Set();
+      const uniqueTracks = allTracks.filter(t => {
+        const lang = t.label || 'Unknown';
+        if (seenLangs.has(lang)) return false;
+        seenLangs.add(lang);
+        return true;
+      });
+      
+      if (!uniqueTracks || !Array.isArray(uniqueTracks)) return;
+      
+      let defaultSelected = false;
+      uniqueTracks.forEach(track => {
         if (!track || !track.file) return;
         const option = document.createElement('div');
         option.className = 'settings-option';
         option.dataset.value = track.file;
         option.innerHTML = `<span>${track.label || 'Subtitle'}</span><span class="check">✓</span>`;
-        if (track.default) {
+        if (track.default && !defaultSelected) {
           option.classList.add('active');
           captionsSection.querySelector('[data-value=""]').classList.remove('active');
           loadSubtitle(track.file);
+          defaultSelected = true;
         }
         captionsSection.appendChild(option);
       });
@@ -1944,6 +1965,7 @@
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           showLoading(false);
           populateQualityLevels();
+          // Populate subtitles from all available sources (merged SUB + DUB)
           populateSubtitles(source.tracks || []);
           loadThumbnails(source.tracks || []);
           if (currentTime > 0) {
