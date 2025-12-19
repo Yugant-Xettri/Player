@@ -1631,6 +1631,7 @@
 
     let hls = null;
     let streamData = null;
+    let allServersData = null;
     let currentAudioType = 'sub';
     let currentServer = 'hd-2';
     let controlsTimeout = null;
@@ -1642,11 +1643,7 @@
     let isSwitchingServer = false;
     let lastPlayIntentTime = 0;
     const playbackSpeeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
-    const servers = [
-      { id: 'hd-2', name: 'Server 1 HD' },
-      { id: 'hd-1', name: 'Server 2 HD' },
-      { id: 'std-1', name: 'Server 3 HD' }
-    ];
+    let servers = [];
 
     async function loadThumbnails(tracks) {
       if (!tracks || !Array.isArray(tracks) || tracks.length === 0) return;
@@ -2040,7 +2037,11 @@
 
     function populateServers() {
       serversSection.innerHTML = '';
-      servers.forEach(server => {
+      if (!allServersData || !allServersData.servers) {
+        serversSection.innerHTML = '<div class="settings-option"><span>No servers available</span></div>';
+        return;
+      }
+      allServersData.servers.forEach(server => {
         const option = document.createElement('div');
         option.className = 'settings-option' + (server.id === currentServer ? ' active' : '');
         option.dataset.value = server.id;
@@ -2069,6 +2070,11 @@
         streamData.sub = streamData.sub || {};
         streamData.dub = streamData.dub || {};
         
+        allServersData = result;
+        if (result.servers) {
+          servers = result.servers.map(s => ({ id: s.id, name: s.name }));
+        }
+        
         populateServers();
         updateAudioToggleVisibility();
         loadStream(currentAudioType);
@@ -2085,7 +2091,6 @@
       currentServer = serverId;
       showLoading(true);
       
-      // Set a timeout to stop loading after 30 seconds
       let loadingTimeout = setTimeout(() => {
         console.warn('Server switch timeout - stopping loading');
         showLoading(false);
@@ -2101,6 +2106,8 @@
           streamData = result.data;
           streamData.sub = streamData.sub || {};
           streamData.dub = streamData.dub || {};
+          
+          allServersData = result;
           populateServers();
           updateAudioToggleVisibility();
           loadStream(currentAudioType);
