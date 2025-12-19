@@ -103,7 +103,7 @@ async function retryWithBackoff<T>(
 app.get('/api/stream', async (req: Request, res: Response) => {
   try {
     let id = req.query.id as string;
-    const server = (req.query.server as string || 'hd-2').toLowerCase();
+    const serverParam = (req.query.server as string || 'hd-2').toLowerCase();
 
     if (!id) {
       return res.status(400).json({ error: 'Episode ID is required', success: false });
@@ -111,7 +111,7 @@ app.get('/api/stream', async (req: Request, res: Response) => {
 
     // Convert format from "anime-id::ep=number" to "anime-id?ep=number"
     id = id.replace('::', '?');
-    console.log(`🎬 Fetching stream for: ${id} on server: ${server}`);
+    console.log(`🎬 Fetching stream for: ${id} on server: ${serverParam}`);
 
     // Return response with empty streams but allow controls to work
     const transformedData: any = {
@@ -121,71 +121,50 @@ app.get('/api/stream', async (req: Request, res: Response) => {
         tracks: [],
         intro: { start: 0, end: 0 },
         outro: { start: 0, end: 0 },
-        server: server
+        server: serverParam
       },
       dub: {}
     };
 
     try {
-      // Try fetching from aniwatch scraper
-      console.log(`⏳ Attempting to fetch from aniwatch...`);
+      // Try fetching from aniwatch scraper for SUB
+      console.log(`⏳ Attempting to fetch SUB from aniwatch...`);
       const streamData = await retryWithBackoff(() => 
-        scraper.getEpisodeSources(id, server), 
+        scraper.getEpisodeSources(id, serverParam as any), 
         3, 
         1000
       );
       
       if (streamData && streamData.sources && streamData.sources.length > 0) {
         transformedData.sub.link.file = streamData.sources[0].url;
-        
-        // Add subtitle tracks
-        if (streamData.tracks && streamData.tracks.length > 0) {
-          transformedData.sub.tracks = streamData.tracks.map((t: any) => ({
-            file: t.url,
-            label: t.lang,
-            kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
-            default: t.lang === 'English'
-          }));
-        }
-        
-        // Add intro/outro timings
-        if (streamData.intro) transformedData.sub.intro = streamData.intro;
-        if (streamData.outro) transformedData.sub.outro = streamData.outro;
-        
-        console.log(`✅ SUB stream found with ${transformedData.sub.tracks.length} tracks`);
+        console.log(`✅ SUB stream found on server ${serverParam}`);
       }
 
-      // Try to fetch DUB
+      // Try to fetch DUB from alternate server
       try {
+        console.log(`⏳ Attempting to fetch DUB...`);
         const dubData = await retryWithBackoff(() => 
-          scraper.getEpisodeSources(id, 'dub'), 
+          scraper.getEpisodeSources(id, 'dub' as any), 
           2, 
           500
         ).catch(() => null);
         
         if (dubData && dubData.sources && dubData.sources.length > 0) {
-          const dubTracks = dubData.tracks ? dubData.tracks.map((t: any) => ({
-            file: t.url,
-            label: t.lang,
-            kind: t.lang === 'thumbnails' ? 'thumbnails' : 'captions',
-            default: t.lang === 'English'
-          })) : [];
-          
           transformedData.dub = {
             type: 'dub',
             link: { file: dubData.sources[0].url },
-            tracks: dubTracks,
-            intro: dubData.intro || { start: 0, end: 0 },
-            outro: dubData.outro || { start: 0, end: 0 },
+            tracks: [],
+            intro: { start: 0, end: 0 },
+            outro: { start: 0, end: 0 },
             server: 'dub'
           };
-          console.log(`✅ DUB stream found with ${dubTracks.length} tracks`);
+          console.log(`✅ DUB stream found`);
         }
       } catch (e) {
         console.log(`⚠️ DUB not available`);
       }
     } catch (error: any) {
-      console.log(`⚠️ Aniwatch error (graceful): ${error.message}`);
+      console.log(`⚠️ Stream fetch error (graceful): ${error.message}`);
     }
       
     res.json({
