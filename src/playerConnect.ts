@@ -102,8 +102,9 @@ class PlayerConnect {
           transformedData.sub.link.file = streamData.sources[0].url;
           
           // Get subtitles from tracks array (main subtitle source)
-          if (streamData.tracks && Array.isArray(streamData.tracks)) {
-            transformedData.sub.tracks = streamData.tracks
+          const streamDataWithTracks = streamData as any;
+          if (streamDataWithTracks.tracks && Array.isArray(streamDataWithTracks.tracks)) {
+            transformedData.sub.tracks = streamDataWithTracks.tracks
               .filter((t: any) => t.lang !== 'thumbnails') // Skip thumbnail tracks
               .map((t: any) => ({
                 file: t.url,
@@ -127,8 +128,9 @@ class PlayerConnect {
           if (dubData && dubData.sources && dubData.sources.length > 0) {
             const dubTracks: any[] = [];
             // Get subtitles from tracks array
-            if (dubData.tracks && Array.isArray(dubData.tracks)) {
-              dubTracks.push(...dubData.tracks
+            const dubDataWithTracks = dubData as any;
+            if (dubDataWithTracks.tracks && Array.isArray(dubDataWithTracks.tracks)) {
+              dubTracks.push(...dubDataWithTracks.tracks
                 .filter((t: any) => t.lang !== 'thumbnails') // Skip thumbnail tracks
                 .map((t: any) => ({
                   file: t.url,
@@ -217,9 +219,10 @@ class PlayerConnect {
         
         if (subData?.sources?.[0]?.url) {
           serverObj.sources.sub.link = subData.sources[0].url;
-          if (subData.tracks?.length) {
+          const subDataWithTracks = subData as any;
+          if (subDataWithTracks.tracks?.length) {
             const captionsObj: any = {};
-            subData.tracks.forEach((t: any) => {
+            subDataWithTracks.tracks.forEach((t: any) => {
               if (t.lang && t.lang !== 'thumbnails' && t.url) {
                 captionsObj[t.lang] = t.url;
               }
@@ -241,9 +244,10 @@ class PlayerConnect {
         
         if (dubData?.sources?.[0]?.url) {
           serverObj.sources.dub.link = dubData.sources[0].url;
-          if (dubData.tracks?.length) {
+          const dubDataWithTracks = dubData as any;
+          if (dubDataWithTracks.tracks?.length) {
             const captionsObj: any = {};
-            dubData.tracks.forEach((t: any) => {
+            dubDataWithTracks.tracks.forEach((t: any) => {
               if (t.lang && t.lang !== 'thumbnails' && t.url) {
                 captionsObj[t.lang] = t.url;
               }
@@ -301,9 +305,10 @@ class PlayerConnect {
         
         if (subData?.sources?.[0]?.url) {
           serverObj.sources.sub.link = subData.sources[0].url;
-          if (subData.tracks?.length) {
+          const subDataWithTracks = subData as any;
+          if (subDataWithTracks.tracks?.length) {
             const captionsObj: any = {};
-            subData.tracks.forEach((t: any) => {
+            subDataWithTracks.tracks.forEach((t: any) => {
               if (t.lang && t.lang !== 'thumbnails' && t.url) {
                 captionsObj[t.lang] = t.url;
               }
@@ -324,9 +329,10 @@ class PlayerConnect {
         
         if (dubData?.sources?.[0]?.url) {
           serverObj.sources.dub.link = dubData.sources[0].url;
-          if (dubData.tracks?.length) {
+          const dubDataWithTracks = dubData as any;
+          if (dubDataWithTracks.tracks?.length) {
             const captionsObj: any = {};
-            dubData.tracks.forEach((t: any) => {
+            dubDataWithTracks.tracks.forEach((t: any) => {
               if (t.lang && t.lang !== 'thumbnails' && t.url) {
                 captionsObj[t.lang] = t.url;
               }
