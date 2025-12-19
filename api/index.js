@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 
 app.use((req, res, next) => {
@@ -61,6 +63,32 @@ app.get('/stream/:type/:tvId', (req, res) => {
     contentId: tvId,
     servers: []
   });
+});
+
+// Embed endpoint - serves embed.html
+app.get('/embed', (req, res) => {
+  const embedPath = path.join(__dirname, '../public/embed.html');
+  try {
+    const html = fs.readFileSync(embedPath, 'utf8');
+    res.set('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    res.status(404).json({ error: 'Embed page not found' });
+  }
+});
+
+// Embed with ID parameter - serves embed.html with id parameter
+app.get('/embed/:id', (req, res) => {
+  const embedPath = path.join(__dirname, '../public/embed.html');
+  try {
+    let html = fs.readFileSync(embedPath, 'utf8');
+    // Pass the ID as a data attribute so the HTML can use it
+    html = html.replace('<html', `<html data-embed-id="${req.params.id}"`);
+    res.set('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    res.status(404).json({ error: 'Embed page not found' });
+  }
 });
 
 // Catch all
